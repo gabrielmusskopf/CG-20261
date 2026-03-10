@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(CGCCHIB)
+project(CGCC)
 
 # Define o padrão do C++
 set(CMAKE_CXX_STANDARD 17)
@@ -42,11 +42,11 @@ include_directories(${glm_SOURCE_DIR})
 include_directories(${stb_image_SOURCE_DIR})
 
 
-# Lista de exemplos/exercícios podem ser colocados aqui também
+# Lista de pastas dos projetos (devem corresponder aos nomes dos diretórios dentro de src/)
 set(EXERCISES
     Hello3D
-    #TrabalhoGrauA
-    # ...
+    # HelloCamera
+    # TrabalhoGrauA
 )
 
 add_compile_options(-Wno-pragmas)
@@ -67,12 +67,23 @@ set(GLAD_C_FILE "${CMAKE_SOURCE_DIR}/common/glad.c")
 
 # Verifica se os arquivos da GLAD estão no lugar
 if (NOT EXISTS ${GLAD_C_FILE})
-    message(FATAL_ERROR "Arquivo glad.c não encontrado! Baixe a GLAD manualmente em https://glad.dav1d.de/ e coloque glad.h em include/glad/ e glad.c em common/")
+    message(FATAL_ERROR "Arquivo glad.c não encontrado! Baixe a GLAD manualmente em [https://glad.dav1d.de/](https://glad.dav1d.de/) e coloque glad.h em include/glad/ e glad.c em common/")
 endif()
 
-# Cria os executáveis
+# Cria os executáveis iterando sobre a lista de projetos
 foreach(EXERCISE ${EXERCISES})
-    add_executable(${EXERCISE} src/${EXERCISE}.cpp ${GLAD_C_FILE})
+    # Busca automaticamente todos os arquivos .cpp e .h dentro da pasta do projeto
+    file(GLOB SOURCES "src/${EXERCISE}/*.cpp" "src/${EXERCISE}/*.h")
+    
+    # Opcional: Avisa se a pasta estiver vazia ou não existir
+    if(NOT SOURCES)
+        message(WARNING "Nenhum arquivo fonte encontrado para o projeto ${EXERCISE} em src/${EXERCISE}/")
+    endif()
+
+    # Cria o executável com o nome da pasta
+    add_executable(${EXERCISE} ${SOURCES} ${GLAD_C_FILE})
+    
+    # Configura os includes e linka as bibliotecas
     target_include_directories(${EXERCISE} PRIVATE ${CMAKE_SOURCE_DIR}/include/glad ${glm_SOURCE_DIR} ${stb_image_SOURCE_DIR})
     target_link_libraries(${EXERCISE} glfw ${OPENGL_LIBS})
 endforeach()

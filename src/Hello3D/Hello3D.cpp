@@ -35,26 +35,29 @@ int setupGeometry();
 const GLuint WIDTH = 1000, HEIGHT = 1000;
 
 // Código fonte do Vertex Shader (em GLSL): ainda hardcoded
-const GLchar* vertexShaderSource = "#version 450\n"
-"layout (location = 0) in vec3 position;\n"
-"layout (location = 1) in vec3 color;\n"
-"uniform mat4 model;\n"
-"out vec4 finalColor;\n"
-"void main()\n"
-"{\n"
+const GLchar* vertexShaderSource = R"glsl(#version 450
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 color;
+uniform mat4 model;
+out vec4 finalColor;
+void main()
+{
 //...pode ter mais linhas de código aqui!
-"gl_Position = model * vec4(position, 1.0);\n"
-"finalColor = vec4(color, 1.0);\n"
-"}\0";
+gl_Position = model * vec4(position, 1.0);
+finalColor = vec4(color, 1.0);
+}
+)glsl";
 
-//Códifo fonte do Fragment Shader (em GLSL): ainda hardcoded
-const GLchar* fragmentShaderSource = "#version 450\n"
-"in vec4 finalColor;\n"
-"out vec4 color;\n"
-"void main()\n"
-"{\n"
-"color = finalColor;\n"
-"}\n\0";
+// Código fonte do Fragment Shader (em GLSL)
+const GLchar* fragmentShaderSource = R"glsl(#version 450
+in vec4 finalColor;
+out vec4 color;
+
+void main()
+{
+    color = finalColor;
+}
+)glsl";
 
 bool rotateX=false, rotateY=false, rotateZ=false;
 
@@ -270,35 +273,37 @@ int setupGeometry()
 	// Pode ser arazenado em um VBO único ou em VBOs separados
 	GLfloat vertices[] = {
 
-		//Base da pirâmide: 2 triângulos
-		//x    y    z    r    g    b
-		-0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-		-0.5, -0.5,  0.5, 0.0, 1.0, 1.0,
-		 0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
+        // Base da pirâmide: 2 triângulos (multicor)
+        // x     y     z      r    g    b
+        -0.5, -0.5, -0.5,   1.0, 1.0, 0.0,
+        -0.5, -0.5,  0.5,   0.0, 1.0, 1.0,
+         0.5, -0.5, -0.5,   1.0, 0.0, 1.0,
 
-		 -0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
-		  0.5, -0.5,  0.5, 0.0, 1.0, 1.0,
-		  0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
+        -0.5, -0.5,  0.5,   1.0, 1.0, 0.0,
+         0.5, -0.5,  0.5,   0.0, 1.0, 1.0,
+         0.5, -0.5, -0.5,   1.0, 0.0, 1.0,
 
-		 //
-		 -0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-		  0.0,  0.5,  0.0, 1.0, 1.0, 0.0,
-		  0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
+        // Frente (z = -0.5) -> Amarelo
+        -0.5, -0.5, -0.5,   1.0, 1.0, 0.0,
+         0.0,  0.5,  0.0,   1.0, 1.0, 0.0,
+         0.5, -0.5, -0.5,   1.0, 1.0, 0.0,
 
-		  -0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
-		  0.0,  0.5,  0.0, 1.0, 0.0, 1.0,
-		  -0.5, -0.5, 0.5, 1.0, 0.0, 1.0,
+        // Esquerda (x = -0.5) -> Ciano
+        -0.5, -0.5, -0.5,   0.0, 1.0, 1.0,
+         0.0,  0.5,  0.0,   0.0, 1.0, 1.0,
+        -0.5, -0.5,  0.5,   0.0, 1.0, 1.0,
 
-		   -0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
-		  0.0,  0.5,  0.0, 1.0, 1.0, 0.0,
-		  0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
+        // Trás (z = 0.5) -> Verde
+        -0.5, -0.5,  0.5,   0.0, 1.0, 0.0,
+         0.0,  0.5,  0.0,   0.0, 1.0, 0.0,
+         0.5, -0.5,  0.5,   0.0, 1.0, 0.0,
 
-		   0.5, -0.5, 0.5, 0.0, 1.0, 1.0,
-		  0.0,  0.5,  0.0, 0.0, 1.0, 1.0,
-		  0.5, -0.5, -0.5, 0.0, 1.0, 1.0,
+        // Direita (x = 0.5) -> Magenta
+         0.5, -0.5,  0.5,   1.0, 0.0, 1.0,
+         0.0,  0.5,  0.0,   1.0, 0.0, 1.0,
+         0.5, -0.5, -0.5,   1.0, 0.0, 1.0,
+    };
 
-
-	};
 
 	GLuint VBO, VAO;
 
