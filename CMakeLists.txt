@@ -4,6 +4,7 @@ project(CGCC)
 # Define o padrão do C++
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 # Ativa o FetchContent
 include(FetchContent)
