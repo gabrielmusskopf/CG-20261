@@ -45,10 +45,10 @@ include_directories(${stb_image_SOURCE_DIR})
 
 # Lista de pastas dos projetos (devem corresponder aos nomes dos diretórios dentro de src/)
 set(EXERCISES
+    ExercicioOBJ
     Hello3D
     HelloCamera
     HelloOBJ
-    # TrabalhoGrauA
 )
 
 add_compile_options(-Wno-pragmas)

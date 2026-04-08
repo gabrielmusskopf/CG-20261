@@ -1,0 +1,30 @@
+# Modelo 3D: Pirâmide de Base Quadrada
+# Gerado para testes de OpenGL
+
+# --- Vértices (v x y z) ---
+# Base da pirâmide (z = -1 e z = 1, y = 0)
+v -1.0 0.0 -1.0
+v  1.0 0.0 -1.0
+v  1.0 0.0  1.0
+v -1.0 0.0  1.0
+# Topo da pirâmide (Apex)
+v  0.0 1.5  0.0
+
+# --- Faces (f v1 v2 v3) ---
+# Nota: As faces estão trianguladas. O OpenGL adora triângulos.
+
+# Chão da pirâmide (2 triângulos formando o quadrado da base)
+f 1 2 3
+f 1 3 4
+
+# Lado da Frente
+f 1 2 5
+
+# Lado Direito
+f 2 3 5
+
+# Lado de Trás
+f 3 4 5
+
+# Lado Esquerdo
+f 4 1 5

@@ -1,0 +1,26 @@
+# Modelo 3D: Octaedro (Cristal / Diamante)
+# 6 Vértices, 8 Faces Triangulares
+
+# --- Vértices (v x y z) ---
+# Topo e Fundo
+v  0.0  1.0  0.0
+v  0.0 -1.0  0.0
+
+# Pontos centrais (Plano X-Z)
+v  1.0  0.0  0.0
+v  0.0  0.0  1.0
+v -1.0  0.0  0.0
+v  0.0  0.0 -1.0
+
+# --- Faces (f v1 v2 v3) ---
+# Metade Superior (ligando o topo aos pontos centrais)
+f 1 4 3
+f 1 5 4
+f 1 6 5
+f 1 3 6
+
+# Metade Inferior (ligando o fundo aos pontos centrais)
+f 2 3 4
+f 2 4 5
+f 2 5 6
+f 2 6 3
