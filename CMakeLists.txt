@@ -48,6 +48,7 @@ set(EXERCISES
     HelloCamera
     HelloOBJ
     HelloPhong
+    HelloCubemap
     # TrabalhoGrauA
 )
 
