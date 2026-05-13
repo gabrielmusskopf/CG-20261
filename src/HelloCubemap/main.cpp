@@ -1,5 +1,6 @@
 /* Hello Triangle - código adaptado de https://learnopengl.com/#!Getting-started/Hello-Triangle
  * e https://antongerdelan.net/opengl/
+ * https://learnopengl.com/Advanced-OpenGL/Cubemaps
  * Adaptado por Rossana Baptista Queiroz
  * para as disciplinas de Processamento Gráfico/Computação Gráfica - Unisinos
  * Versão inicial: 7/4/2017
@@ -37,10 +38,13 @@ using namespace std;
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
 
 // Protótipos das funções
-int setupShader();
+int setupShader(const GLchar *vshader, const GLchar *fshader);
 int setupGeometry();
 int loadSimpleOBJ(string filePATH, int &nVertices);
 int loadTexture(string filePath, int &imgWidth, int &imgHeight);
+unsigned int loadCubemap(vector<std::string> faces);
+int setupCubemap(float scaleFactor);
+
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 600, HEIGHT = 600;
@@ -64,7 +68,7 @@ gl_Position = projection * view * model * vec4(position, 1.0);
 finalColor = vec4(color, 1.0);
 fragPos = vec3(model * vec4(position, 1.0)); 
 scaledNormal = vec3(model * vec4(normal, 1.0));
-texcoord = texc; //inicialmente assim -- propositalmente 
+texcoord = vec2(texc.s,1.0 - texc.t); //inicialmente assim -- propositalmente 
 }
 )glsl";
 
@@ -74,41 +78,58 @@ in vec4 finalColor;
 in vec3 fragPos;
 in vec3 scaledNormal;
 in vec2 texcoord;
-
 uniform sampler2D texBuffer;
-
 // Propriedades da superfície/material
 uniform float ka;
 uniform float kd;
 uniform float ks, q;
-
 // Propriedades da fonte de luz
 uniform vec3 lightPos;
 uniform vec3 lightColor;
-
 // Posicao da camera
 uniform vec3 cameraPos;
-
 out vec4 color;
-
 void main()
 {
 	// Parcela da luz ambiente
 	vec3 ambient = ka * lightColor;
-
 	// Parcela da reflexão difusa
 	vec3 N = normalize(scaledNormal);
 	vec3 L = normalize(lightPos - fragPos);
 	float diff = max(dot(N,L),0.0);
 	vec3 diffuse = kd * diff * lightColor;
-
 	// Parcela da reflexão especular
 	//vec3 specular = ....
-
 	vec4 texColor = texture(texBuffer,texcoord);
     color = (vec4(ambient,1) + vec4(diffuse,1))*texColor; // + vec4(specular,1);
 }
 )glsl";
+
+//--------------------
+const GLchar *vShaderSkybox = R"glsl(
+#version 450
+layout (location = 0) in vec3 aPos;
+out vec3 TexCoords;
+uniform mat4 projection;
+uniform mat4 view;
+void main()
+{
+    TexCoords = aPos;
+    gl_Position = projection * view * vec4(aPos, 1.0);
+}  
+)glsl";
+
+const GLchar *fShaderSkybox = R"glsl(
+#version 450
+out vec4 FragColor;
+in vec3 TexCoords;
+uniform samplerCube skybox;
+void main()
+{    
+    FragColor = texture(skybox, TexCoords);
+}
+)glsl";
+
 
 bool rotateX = false, rotateY = false, rotateZ = false;
 bool perspective = true; // começa com projeção perspectiva
@@ -169,8 +190,9 @@ int main()
 	glViewport(0, 0, width, height);
 
 	// Compilando e buildando o programa de shader
-	GLuint shaderID = setupShader();
-
+	GLuint shaderID = setupShader(vertexShaderSource,fragmentShaderSource);
+	GLuint skyboxShaderID = setupShader(vShaderSkybox,fShaderSkybox);
+	
 	glUseProgram(shaderID);
 
 	// Matriz de modelo - Transformações nos objetos
@@ -213,6 +235,25 @@ int main()
 	glActiveTexture(GL_TEXTURE0);
 	glUniform1i(glGetUniformLocation(shaderID, "texBuff"), 0);
 
+	//---
+	vector <string> faces = {
+		"../src/HelloCubemap/skybox/right.jpg",
+    	"../src/HelloCubemap/skybox/left.jpg",
+    	"../src/HelloCubemap/skybox/top.jpg",
+    	"../src/HelloCubemap/skybox/bottom.jpg",
+    	"../src/HelloCubemap/skybox/front.jpg",
+    	"../src/HelloCubemap/skybox/back.jpg"
+	};
+
+	GLfloat skyboxTexID = loadCubemap(faces);
+	GLfloat skyboxVAO = setupCubemap(5.0);
+
+	glUseProgram(skyboxShaderID);
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShaderID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	glUniform1i(glGetUniformLocation(skyboxShaderID, "skybox"), 0);
+
+	// ---
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
@@ -293,6 +334,7 @@ int main()
 
 		float angle = (GLfloat)glfwGetTime();
 		model = glm::mat4(1);
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		if (rotateX)
 		{
 			model = glm::rotate(model, angle, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -311,8 +353,20 @@ int main()
 		// Atualização da matriz de view de acordo com as mudanças que ela sofreu via input
 		// de mouse e/ou teclado
 		view = camera.getViewMatrix();
-		glUniformMatrix4fv(glGetUniformLocation(shaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
+		//-------------------------------------------- Chamada de desenho do Skybox
+		glDepthMask(GL_FALSE);
+		glUseProgram(skyboxShaderID);
+		glBindVertexArray(skyboxVAO);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexID);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glDepthMask(GL_TRUE);
+
+		//-------------------------------------------- Chamada de desenho do objeto
+		glUseProgram(shaderID);
+		glUniformMatrix4fv(glGetUniformLocation(shaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		// Passa a posicao da camera para o shader
 		glUniform3f(glGetUniformLocation(shaderID, "cameraPos"), camera.position.x, camera.position.y, camera.position.z);
 		// Chamada de Desenho - DRAWCALL
@@ -373,11 +427,11 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 //  O código fonte do vertex e fragment shader está nos arrays vertexShaderSource e
 //  fragmentShader source no iniçio deste arquivo
 //  A função retorna o identificador do programa de shader
-int setupShader()
+int setupShader(const GLchar *vshader, const GLchar *fshader)
 {
 	// Vertex shader
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+	glShaderSource(vertexShader, 1, &vshader, NULL);
 	glCompileShader(vertexShader);
 	// Checando erros de compilação (exibição via log no terminal)
 	GLint success;
@@ -391,7 +445,7 @@ int setupShader()
 	}
 	// Fragment shader
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+	glShaderSource(fragmentShader, 1, &fshader, NULL);
 	glCompileShader(fragmentShader);
 	// Checando erros de compilação (exibição via log no terminal)
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
@@ -563,4 +617,95 @@ int loadTexture(string filePath, int &imgWidth, int &imgHeight)
 		return -1;
 	}
 
+}
+
+
+unsigned int loadCubemap(vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
+}  
+
+int setupCubemap(float scaleFactor)
+{
+    float skyboxVertices[] = {
+        // positions          
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f,
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f,
+
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f,
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f,
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f,
+
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor *  0.5f,
+        scaleFactor * -0.5f,  scaleFactor *  0.5f,  scaleFactor * -0.5f,
+
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor * -0.5f,
+        scaleFactor * -0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f,
+        scaleFactor *  0.5f,  scaleFactor * -0.5f,  scaleFactor *  0.5f
+    };   
+    // skybox VAO
+    unsigned int skyboxVAO, skyboxVBO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    return skyboxVAO;
 }
