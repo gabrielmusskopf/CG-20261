@@ -49,6 +49,7 @@ set(EXERCISES
     HelloOBJ
     HelloPhong
     HelloCubemap
+    HelloCurves
     # TrabalhoGrauA
 )
 
