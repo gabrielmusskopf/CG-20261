@@ -5,6 +5,7 @@
 /Makefile
 /cmake_install.cmake
 /.cache
+/src/HelloCubemap-Completo
 
 # Ignorar arquivos de saída do compilador (objetos e executáveis)
 *.o
