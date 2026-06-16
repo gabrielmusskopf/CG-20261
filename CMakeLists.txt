@@ -48,6 +48,7 @@ set(EXERCISES
     ExercicioOBJ
     ExercicioCubemap
     GrauA
+    GrauB
     Hello3D
     HelloCamera
     HelloOBJ

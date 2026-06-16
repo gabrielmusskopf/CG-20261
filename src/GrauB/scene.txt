@@ -1,0 +1,54 @@
+# Arquivo de configuração de cena para o Trabalho GB
+
+# Câmera
+# camera_pos [x] [y] [z]
+camera_pos 0 5 20
+# camera_yaw_pitch [yaw] [pitch]
+camera_yaw_pitch -90 -10
+# camera_fov [graus]
+camera_fov 45
+
+# Luz
+# light_pos [x] [y] [z]
+light_pos 0 20 0
+# light_color [r] [g] [b]
+light_color 1 1 1
+
+# --- OBJETOS DA CENA ---
+
+# Chão
+model ../assets/Modelos3D/Cube.obj
+pos 0 -2 0
+scale 20 0.1 20
+# material [ka_r] [ka_g] [ka_b] [kd_r] [kd_g] [kd_b] [ks_r] [ks_g] [ks_b] [shininess]
+material 0.1 0.1 0.1   0.5 0.5 0.5   0.1 0.1 0.1  16.0
+
+# Pirâmide estática
+model ../assets/Modelos3D/Piramide.obj
+pos 5 -1 0
+rot 0 45 0
+scale 1 1 1
+material 0.1 0.0 0.0   0.7 0.1 0.1   0.9 0.9 0.9  128.0
+
+# Cubo estático
+model ../assets/Modelos3D/Cube.obj
+pos -5 -1 0
+scale 1.5 1.5 1.5
+material 0.0 0.1 0.0   0.1 0.7 0.1   0.9 0.9 0.9  128.0
+
+# Octaedro estático
+model ../assets/Modelos3D/Octaedro.obj
+pos 0 -1 5
+scale 1 1 1
+material 0.0 0.0 0.1   0.1 0.1 0.7   0.9 0.9 0.9  128.0
+
+# Suzanne animada com curva de Bézier
+model ../assets/Modelos3D/SuzanneSubdiv1.obj
+pos 0 3 -5
+scale 1 1 1
+animate_bezier 15.0
+p0 -5 0 0
+p1 -5 7 7
+p2 5 7 7
+p3 -5 0 0
+material 0.1 0.1 0.0   0.8 0.8 0.2   1.0 1.0 1.0  256.0
